@@ -1,0 +1,18 @@
+FROM nvidia/cuda:12.4.1-cudnn-runtime-ubuntu22.04
+
+ENV DEBIAN_FRONTEND=noninteractive PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 MODEL_DIR=/models
+WORKDIR /app
+RUN apt-get update && apt-get install -y --no-install-recommends python3 python3-pip git ffmpeg ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+COPY requirements.txt .
+RUN pip3 install --no-cache-dir -r requirements.txt \
+    && pip3 install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cu124 \
+    && pip3 install --no-cache-dir ultralytics gdown git+https://github.com/roboflow/sports.git@42c80c06b6b65a7f89455b89fe31cdf4c38ba227
+RUN mkdir -p /models \
+    && gdown -O /models/football-ball-detection.pt "https://drive.google.com/uc?id=1isw4wx-MK9h9LMr36VvIWlJD6ppUvw7V" \
+    && gdown -O /models/football-player-detection.pt "https://drive.google.com/uc?id=17PXFNlx-jI7VjVo_vQnB1sONjRyvoB-q" \
+    && gdown -O /models/football-pitch-detection.pt "https://drive.google.com/uc?id=1Ma5Kt86tgpdjCTKfum79YMgNnSjcoOyf"
+COPY matchlens ./matchlens
+COPY analyzers ./analyzers
+ENV ANALYZER_COMMAND="python3 /app/analyzers/roboflow_adapter.py --input {input} --output {output} --tracks {tracks} --device cuda"
+CMD ["uvicorn", "matchlens.api:app", "--host", "0.0.0.0", "--port", "8080"]
