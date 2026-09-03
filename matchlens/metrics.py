@@ -5,7 +5,7 @@ from collections import Counter
 def distance(a,b): return math.hypot(b[0]-a[0],b[1]-a[1])
 
 
-def calculate_player_metrics(frames:list[dict],tracker_id:int,fps:float,confidence_threshold:float=.55):
+def calculate_player_metrics(frames:list[dict],tracker_id:int,fps:float,confidence_threshold:float=.55,coordinate_system="metres_120x70"):
     """Calculate only observable metrics from normalized pitch coordinates in metres."""
     points=[]; visible=0; touches=0; zones=Counter(); last_touch_frame=-10_000
     for frame_index,frame in enumerate(frames):
@@ -24,9 +24,10 @@ def calculate_player_metrics(frames:list[dict],tracker_id:int,fps:float,confiden
         moved=distance(previous[1:],current[1:]); speed=moved/elapsed
         if speed<=12.5: total_distance+=moved; speeds.append(speed)
     duration=(len(frames)/fps) if fps else 0
-    return {"tracker_id":tracker_id,"confidence":"estimated","visible_seconds":round(visible/fps,1) if fps else 0,
+    calibrated=coordinate_system.startswith("metres")
+    return {"tracker_id":tracker_id,"confidence":"estimated" if calibrated else "tracking_only","visible_seconds":round(visible/fps,1) if fps else 0,
             "coverage_percent":round(visible/len(frames)*100,1) if frames else 0,
-            "distance_m":round(total_distance,1),"max_speed_kmh":round(max(speeds,default=0)*3.6,1),
+            "distance_m":round(total_distance,1) if calibrated else None,"max_speed_kmh":round(max(speeds,default=0)*3.6,1) if calibrated else None,
             "touches_observed":touches,"dominant_zones":[z for z,_ in zones.most_common(3)],
-            "video_duration_seconds":round(duration,1),"limitations":["Distance excludes periods outside the frame",
+            "video_duration_seconds":round(duration,1),"limitations":["Field calibration missing: distance and speed unavailable"] if not calibrated else ["Distance excludes periods outside the frame",
             "Touches are ball-proximity events, not official event data"]}

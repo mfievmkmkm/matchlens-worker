@@ -91,7 +91,7 @@ async def process_job(job:MatchJob,store):
             else: job.result_url=None
             update("awaiting_selection",70,"select_player")
             return
-        update("processing",85,"reporting"); build_report(job_dir,result["frames"],tracker,float(result["fps"]))
+        update("processing",85,"reporting"); build_report(job_dir,result,tracker)
         base=settings.public_base_url.rstrip("/")
         expires,signature=sign_result(job.id,"report.html",settings.api_key,settings.signed_url_ttl_minutes)
         query=f"?expires={expires}&signature={signature}"
