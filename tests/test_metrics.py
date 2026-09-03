@@ -18,3 +18,9 @@ def test_radar_is_svg_and_contains_player():
     result=radar_svg(frames(),7)
     assert result.startswith("<svg")
     assert "PLAYER 7" in result
+
+def test_cpu_pixel_tracking_never_claims_metres_or_speed():
+    result=calculate_player_metrics(frames(),7,10,coordinate_system="image_pixels")
+    assert result["distance_m"] is None
+    assert result["max_speed_kmh"] is None
+    assert result["confidence"] == "tracking_only"
